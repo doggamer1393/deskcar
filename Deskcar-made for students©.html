@@ -1,0 +1,3310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deskcar</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #202225;
+        color: white;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    button {
+        cursor: pointer;
+    }
+
+    /* SERVER SIDEBAR */
+    #serverSidebar {
+        width: 90px;
+        background: #202225;
+        padding: 10px;
+        overflow-y: auto;
+        border-right: 1px solid #111;
+        flex-shrink: 0;
+    }
+
+    .serverButton {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: none;
+        background: #36393f;
+        color: white;
+        margin: 5px;
+        font-weight: bold;
+        transition: 0.15s;
+    }
+
+    .serverButton:hover,
+    .serverButton.active {
+        border-radius: 15px;
+        background: #5865f2;
+    }
+
+    .serverAction {
+        background: #3ba55d;
+        font-size: 25px;
+    }
+
+    /* CHANNEL SIDEBAR */
+    #sidebar {
+        width: 260px;
+        background: #2f3136;
+        padding: 20px;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    #serverName {
+        margin-top: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .channel {
+        padding: 10px;
+        background: #36393f;
+        margin-bottom: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .channel:hover,
+    .channel.active {
+        background: #40444b;
+    }
+
+    #inviteBox {
+        margin-top: 25px;
+        padding: 12px;
+        background: #202225;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    #inviteCode {
+        font-weight: bold;
+        color: #57f287;
+        word-break: break-all;
+    }
+
+    #inviteBox button,
+    #moderationButton {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        color: white;
+    }
+
+    #inviteBox button {
+        background: #5865f2;
+    }
+
+    #moderationButton {
+        display: none;
+        margin-top: 20px;
+        background: #ed4245;
+    }
+
+    /* CHAT */
+    #chat {
+        flex: 1;
+        min-width: 0;
+        background: #36393f;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #chatHeader {
+        padding: 15px 20px;
+        background: #2f3136;
+        border-bottom: 1px solid #202225;
+        font-weight: bold;
+    }
+
+    #messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .message {
+        padding: 8px 0;
+        overflow-wrap: anywhere;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .messageContent {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .messageUser {
+        font-weight: bold;
+        color: #57f287;
+    }
+
+    .deleteMessageButton {
+        border: none;
+        background: transparent;
+        color: #aaa;
+        padding: 3px 7px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0.65;
+    }
+
+    .message:hover .deleteMessageButton {
+        opacity: 1;
+    }
+
+    .deleteMessageButton:hover {
+        background: #ed4245;
+        color: white;
+    }
+
+    #voiceBox {
+        margin-top: 20px;
+        padding: 12px;
+        background: #202225;
+        border-radius: 8px;
+    }
+
+    #voiceBox h3 {
+        margin: 0 0 10px;
+    }
+
+    #voiceControls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #voiceControls button {
+        border: none;
+        border-radius: 5px;
+        color: white;
+        padding: 8px 10px;
+        background: #3ba55d;
+    }
+
+    #voiceMuteButton {
+        background: #5865f2 !important;
+    }
+
+    #voiceLeaveButton {
+        background: #ed4245 !important;
+    }
+
+    #voiceStatus {
+        margin-top: 8px;
+        color: #aaa;
+        font-size: 12px;
+    }
+
+    #voiceMembersList {
+        margin-top: 8px;
+        font-size: 13px;
+    }
+
+    .voiceMember {
+        padding: 3px 0;
+        color: #ddd;
+    }
+
+    #remoteAudioContainer {
+        display: none;
+    }
+
+    #inputBox {
+        display: flex;
+        padding: 10px;
+        background: #2f3136;
+    }
+
+    #inputBox input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 5px;
+        border: none;
+        outline: none;
+        background: #40444b;
+        color: white;
+        min-width: 0;
+    }
+
+    #inputBox button {
+        margin-left: 10px;
+        padding: 10px 20px;
+        background: #5865f2;
+        border: none;
+        border-radius: 5px;
+        color: white;
+    }
+
+    #noServer {
+        padding: 20px;
+        color: #aaa;
+    }
+
+    /* LOGIN */
+    #loginScreen {
+        position: fixed;
+        z-index: 100;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #202225;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    #loginScreen input {
+        padding: 10px;
+        width: 250px;
+        margin: 8px;
+        border-radius: 5px;
+        border: none;
+    }
+
+    #loginScreen button {
+        padding: 10px 20px;
+        background: #5865f2;
+        border: none;
+        border-radius: 5px;
+        color: white;
+        margin: 5px;
+    }
+
+    #loginStatus {
+        color: #ed4245;
+        min-height: 20px;
+    }
+
+    /* MODALS */
+    #serverModal,
+    #moderationModal,
+    #shopModal,
+    #giftModal {
+        display: none;
+        position: fixed;
+        z-index: 200;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,.75);
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modalContent {
+        width: 380px;
+        max-width: calc(100vw - 30px);
+        max-height: 80vh;
+        overflow-y: auto;
+        background: #2f3136;
+        padding: 25px;
+        border-radius: 10px;
+    }
+
+    .modalContent input {
+        width: 100%;
+        padding: 12px;
+        margin: 7px 0;
+        border: none;
+        border-radius: 5px;
+    }
+
+    .modalContent button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        margin: 5px;
+        color: white;
+        background: #5865f2;
+    }
+
+    .danger {
+        background: #ed4245 !important;
+    }
+
+    .success {
+        background: #3ba55d !important;
+    }
+
+    .member {
+        background: #36393f;
+        padding: 10px;
+        margin-bottom: 7px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ownerBadge {
+        display: inline-block;
+        color: #111;
+        background: #faa61a;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        margin-left: 5px;
+        border-radius: 999px;
+        vertical-align: middle;
+    }
+
+    .userBadge {
+        display: inline-block;
+        color: white;
+        background: #5865f2;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        margin-left: 5px;
+        border-radius: 999px;
+        vertical-align: middle;
+    }
+
+    #voiceChangerBox {
+        display: none;
+        margin-top: 9px;
+        color: #ddd;
+        font-size: 12px;
+    }
+
+    #voiceChangerSelect {
+        width: 100%;
+        margin-top: 5px;
+        padding: 7px;
+        border: 1px solid #4b4f57;
+        border-radius: 5px;
+        color: white;
+        background: #40444b;
+    }
+
+    .subscriptionBadge {
+        display: inline-block;
+        color: white;
+        background: linear-gradient(135deg, #9b59ff, #5865f2);
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        margin-left: 5px;
+        border-radius: 999px;
+        vertical-align: middle;
+    }
+
+    .sidebarMenuButton {
+        width: 100%;
+        margin-top: 10px;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        color: white;
+        background: #5865f2;
+    }
+
+    #giftMenuButton { display: none; background: #9b59ff; }
+    .modalWide { width: 780px; }
+    .catalogGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .catalogCard { background: #36393f; border: 1px solid #4b4f57; border-radius: 10px; padding: 14px; }
+    .catalogCard h3 { margin: 0 0 5px; }
+    .catalogPrice { color: #57f287; font-weight: bold; font-size: 18px; margin: 8px 0; }
+    .catalogCard ul { padding-left: 18px; color: #ddd; font-size: 13px; }
+    .inPersonNotice { padding: 12px; border-radius: 8px; background: #faa61a; color: #111; font-weight: 700; }
+    .giftForm label { display: block; margin-top: 12px; color: #ddd; font-size: 13px; }
+    .giftForm select { width: 100%; padding: 12px; margin-top: 6px; border: none; border-radius: 5px; background: #40444b; color: white; }
+    #giftStatus { min-height: 20px; color: #57f287; }
+    .currentEntitlement { background: #36393f; padding: 9px; border-radius: 6px; margin: 6px 0; font-size: 13px; }
+
+
+
+
+
+
+
+    .messageHeader {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2px;
+        margin-bottom: 3px;
+    }
+
+
+    #userProfileBox {
+        margin-bottom: 18px;
+        padding: 10px;
+        background: #202225;
+        border-radius: 8px;
+    }
+
+
+    #profileText {
+        min-width: 0;
+        flex: 1;
+    }
+
+    #profileUsername {
+        font-weight: bold;
+        overflow-wrap: anywhere;
+    }
+
+    #profileBadges {
+        margin-top: 4px;
+    }
+
+    #membershipStatus {
+        margin-top: 7px;
+        color: #bbb;
+        font-size: 12px;
+    }
+
+    #ownerOnlineBox {
+        display: none;
+        margin: 12px 0 18px;
+        padding: 10px;
+        background: #202225;
+        border-radius: 8px;
+    }
+
+    #ownerOnlineBox h3 { margin: 0 0 8px; font-size: 15px; }
+    .onlineUserRow { padding: 5px 0; border-bottom: 1px solid #36393f; font-size: 12px; }
+    .onlineDot { color: #57f287; margin-right: 5px; }
+
+
+
+    .memberIdentity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .memberIdentityText {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .memberActions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 4px;
+    }
+
+    .memberActions button {
+        margin: 0;
+        padding: 7px 9px;
+    }
+
+    #serverStatus {
+        min-height: 18px;
+    }
+
+    @media (max-width: 700px) {
+        #serverSidebar {
+            width: 70px;
+            padding: 5px;
+        }
+
+        .serverButton {
+            width: 48px;
+            height: 48px;
+        }
+
+        #sidebar {
+            width: 190px;
+            padding: 12px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+    <h1>Deskcar</h1>
+
+    <input id="username" placeholder="Username" autocomplete="username">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+
+    <div>
+        <button onclick="login()">Login</button>
+        <button onclick="signup()">Sign Up</button>
+    </div>
+
+    <p id="loginStatus"></p>
+</div>
+
+<!-- SERVER LIST -->
+<div id="serverSidebar">
+    <button
+        class="serverButton serverAction"
+        onclick="openServerModal()"
+        title="Create or Join Server">
+        +
+    </button>
+
+    <div id="serverList"></div>
+</div>
+
+<!-- CHANNEL SIDEBAR -->
+<div id="sidebar">
+    <h2 id="serverName">Deskcar</h2>
+
+    <div id="userProfileBox">
+        <div id="profileText">
+            <div id="profileUsername">Not logged in</div>
+            <div id="profileBadges"></div>
+            <div id="membershipStatus">Membership: Free</div>
+        </div>
+    </div>
+
+    <div id="ownerOnlineBox">
+        <h3>Online users & memberships</h3>
+        <div id="ownerOnlineList">Nobody is online.</div>
+    </div>
+
+    <div id="channels">
+        <div class="channel active" data-channel="general" onclick="switchChannel('general')">
+            # general
+        </div>
+
+        <div class="channel" data-channel="games" onclick="switchChannel('games')">
+            # games
+        </div>
+
+        <div class="channel" data-channel="random" onclick="switchChannel('random')">
+            # random
+        </div>
+
+        <div id="updateLeaksChannel" class="channel" data-channel="update-leaks" onclick="switchChannel('update-leaks')" style="display:none">
+            🔒 update-leaks
+        </div>
+    </div>
+
+    <div id="voiceBox">
+        <h3>🔊 Voice Chat</h3>
+
+        <div id="voiceControls">
+            <button id="voiceJoinButton" onclick="joinVoice()">Join Voice</button>
+            <button id="voiceMuteButton" onclick="toggleVoiceMute()" style="display:none">Mute Mic</button>
+            <button id="voiceLeaveButton" onclick="leaveVoice()" style="display:none">Leave</button>
+        </div>
+
+        <div id="voiceStatus">Not connected</div>
+        <label id="voiceChangerBox" for="voiceChangerSelect">
+            Voice changer (Premium)
+            <select id="voiceChangerSelect" onchange="changeVoiceEffect(this.value)">
+                <option value="normal">Normal</option>
+                <option value="deep">Deep</option>
+                <option value="robot">Robot</option>
+                <option value="radio">Radio</option>
+            </select>
+        </label>
+        <div id="voiceMembersList"></div>
+        <div id="remoteAudioContainer"></div>
+    </div>
+
+    <button class="sidebarMenuButton" onclick="openShop()">
+        Membership Plans
+    </button>
+
+    <div id="inviteBox" style="display:none">
+        <strong>Invite Code</strong>
+        <p id="inviteCode"></p>
+
+        <button onclick="copyInviteCode()">
+            Copy Invite
+        </button>
+    </div>
+
+    <button
+        id="moderationButton"
+        onclick="openModeration()">
+        Manage Members
+    </button>
+
+    <button id="giftMenuButton" class="sidebarMenuButton" onclick="openGiftMenu()">
+        Gift Plans
+    </button>
+</div>
+
+<!-- CHAT -->
+<div id="chat">
+    <div id="chatHeader">
+        Main Server • #general
+    </div>
+
+    <div id="messages">
+        <div id="noServer">
+            Log in to start chatting.
+        </div>
+    </div>
+
+    <div id="inputBox">
+        <input
+            id="msgInput"
+            placeholder="Type a message..."
+            onkeydown="if(event.key === 'Enter') sendMessage()">
+
+        <button onclick="sendMessage()">
+            Send
+        </button>
+    </div>
+</div>
+
+<!-- CREATE / JOIN SERVER MODAL -->
+<div id="serverModal">
+    <div class="modalContent">
+        <h2>Create Server</h2>
+
+        <input
+            id="newServerName"
+            maxlength="40"
+            placeholder="Server name">
+
+        <button
+            class="success"
+            onclick="createServer()">
+            Create Server
+        </button>
+
+        <hr>
+
+        <h2>Join Server</h2>
+
+        <input
+            id="joinCode"
+            maxlength="8"
+            placeholder="Enter invite code">
+
+        <button onclick="joinServer()">
+            Join Server
+        </button>
+
+        <br>
+
+        <button
+            class="danger"
+            onclick="closeServerModal()">
+            Close
+        </button>
+
+        <p id="serverStatus"></p>
+    </div>
+</div>
+
+<!-- MODERATION -->
+<div id="moderationModal">
+    <div class="modalContent">
+        <h2>Server Members</h2>
+
+        <div id="memberList"></div>
+
+        <h3>Banned Users</h3>
+
+        <div id="bannedList"></div>
+
+        <button
+            class="danger"
+            onclick="closeModeration()">
+            Close
+        </button>
+    </div>
+</div>
+
+<!-- READ-ONLY MEMBERSHIP CATALOG -->
+<div id="shopModal">
+    <div class="modalContent modalWide">
+        <h2>Membership Plans</h2>
+        <p class="inPersonNotice">Memberships can only be purchased in person. Online payment is not available.</p>
+        <div class="catalogGrid">
+            <div class="catalogCard">
+                <h3>Monthly Premium</h3>
+                <div class="catalogPrice">$3 per month</div>
+                <p>Choose between 1 and 12 months when purchasing in person.</p>
+                <ul>
+                    <li>Premium nametag</li>
+                    <li>Owner update leaks</li>
+                    <li>Voice changers in voice chat</li>
+                </ul>
+            </div>
+            <div class="catalogCard">
+                <h3>Permanent Premium</h3>
+                <div class="catalogPrice">$40 one time</div>
+                <p>Permanent Premium access after an in-person purchase.</p>
+                <ul>
+                    <li>Premium nametag</li>
+                    <li>Owner update leaks</li>
+                    <li>Voice changers in voice chat</li>
+                </ul>
+            </div>
+        </div>
+        <button class="danger" onclick="closeShop()">Close</button>
+    </div>
+</div>
+
+<!-- GLOBAL OWNER-ONLY GIFTING MENU -->
+<div id="giftModal">
+    <div class="modalContent modalWide">
+        <h2>Gift Membership Plans</h2>
+        <p>Owner-only controls for recording in-person purchases or granting gifted Premium.</p>
+        <div class="giftForm">
+            <label for="giftUser">User</label>
+            <select id="giftUser" onchange="loadGiftRecipientDetails()"></select>
+            <label for="giftProduct">Plan</label>
+            <select id="giftProduct" onchange="loadGiftRecipientDetails()">
+                <option value="premium">Premium</option>
+            </select>
+            <div id="durationField">
+                <label for="giftDuration">Duration</label>
+                <select id="giftDuration">
+                    <option value="1">1 month</option>
+                    <option value="2">2 months</option>
+                    <option value="3">3 months</option>
+                    <option value="4">4 months</option>
+                    <option value="5">5 months</option>
+                    <option value="6">6 months</option>
+                    <option value="7">7 months</option>
+                    <option value="8">8 months</option>
+                    <option value="9">9 months</option>
+                    <option value="10">10 months</option>
+                    <option value="11">11 months</option>
+                    <option value="12">12 months</option>
+                    <option value="lifetime">Permanent</option>
+                </select>
+            </div>
+            <button class="success" onclick="grantSelectedGift()">Grant Selected Plan</button>
+            <button class="danger" onclick="revokeSelectedGift()">Revoke Selected Plan</button>
+            <button onclick="closeGiftMenu()">Close</button>
+            <p id="giftStatus"></p>
+        </div>
+        <h3>Selected user's plan status</h3>
+        <div id="recipientEntitlements"></div>
+    </div>
+</div>
+
+<script>
+/* =========================================================
+   FIREBASE SETUP
+========================================================= */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC7DJtarHFM7slahN0cfj94e-AS5p4MP1o",
+    authDomain: "deskcar-b3e3a.firebaseapp.com",
+    databaseURL: "https://deskcar-b3e3a-default-rtdb.firebaseio.com",
+    projectId: "deskcar-b3e3a",
+    storageBucket: "deskcar-b3e3a.firebasestorage.app",
+    messagingSenderId: "728724803614",
+    appId: "1:728724803614:web:ce399c1635cc59d7469e0f",
+    measurementId: "G-VJL0YFV79N"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* =========================================================
+   DESKCAR SETTINGS
+========================================================= */
+
+const MAIN_SERVER_ID = "main";
+
+const MEMBERSHIP_PRODUCTS = {
+    premium: { name: "Premium", benefits: ["Premium nametag", "Update leaks from the owner", "Voice changers in voice chat"] }
+};
+
+/*
+    The username "owner" acts as the global Deskcar moderator.
+
+    IMPORTANT:
+    This prototype still stores passwords in Firebase Realtime Database
+    as plain text. That is NOT secure for a public/production website.
+    Use Firebase Authentication before publishing this publicly.
+*/
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+let currentUser = null;
+let currentServer = null;
+let currentServerData = null;
+let currentChannel = "general";
+let currentMessageRef = null;
+let currentMessageLoadId = 0;
+let currentUserHasPremium = false;
+let myPresenceRef = null;
+let ownerPresenceRef = null;
+let ownerPresenceListener = null;
+let ownerUsersRef = null;
+let ownerUsersListener = null;
+let currentSubscriptionRef = null;
+let currentSubscriptionListener = null;
+
+/* Voice chat state */
+let localVoiceStream = null;
+let rawVoiceStream = null;
+let voiceAudioContext = null;
+let voiceEffectNodes = [];
+let currentVoiceEffect = "normal";
+let voiceJoined = false;
+let voiceMuted = false;
+let myVoiceSessionId = null;
+let myVoiceSessionRef = null;
+let myVoiceSignalRef = null;
+let voiceMembersRef = null;
+let voiceMembersListener = null;
+
+const voicePeers = new Map();
+const pendingIceCandidates = new Map();
+const voiceSignalQueues = new Map();
+const voiceReconnectTimers = new Map();
+
+const voiceRtcConfig = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+    ]
+};
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const loginStatus = document.getElementById("loginStatus");
+const loginScreen = document.getElementById("loginScreen");
+const messages = document.getElementById("messages");
+const msgInput = document.getElementById("msgInput");
+const serverList = document.getElementById("serverList");
+
+/* =========================================================
+   INITIALIZE MAIN SERVER
+========================================================= */
+
+async function ensureMainServer() {
+    const snapshot = await db.ref("servers/" + MAIN_SERVER_ID).once("value");
+
+    if (!snapshot.exists()) {
+        await db.ref("servers/" + MAIN_SERVER_ID).set({
+            name: "Main Server",
+            owner: "owner",
+            isMain: true,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+}
+
+ensureMainServer().catch(error => {
+    console.error("Firebase startup error:", error);
+    loginStatus.innerText = "Database connection failed: " + (error.message || error.code || "unknown error");
+});
+
+/* =========================================================
+   SIGN UP
+========================================================= */
+
+async function signup() {
+    const u = usernameInput.value.trim();
+    const p = passwordInput.value.trim();
+
+    if (!u || !p) {
+        loginStatus.innerText = "Enter username and password.";
+        return;
+    }
+
+    if (u.length < 3) {
+        loginStatus.innerText = "Username must be at least 3 characters.";
+        return;
+    }
+
+    if (p.length < 4) {
+        loginStatus.innerText = "Password must be at least 4 characters.";
+        return;
+    }
+
+    /*
+       Reserve "owner" so regular users cannot claim it.
+       If you already created the owner account, login normally.
+    */
+    if (u.toLowerCase() === "owner") {
+        loginStatus.innerText = 'The username "owner" is reserved.';
+        return;
+    }
+
+    try {
+        const snapshot = await db.ref("users/" + u).once("value");
+
+        if (snapshot.exists()) {
+            loginStatus.innerText = "Username already exists.";
+            return;
+        }
+
+        await db.ref("users/" + u).set({
+            password: p,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        loginStatus.style.color = "#57f287";
+        loginStatus.innerText = "Account created. You can now log in.";
+    } catch (error) {
+        console.error("Sign-up error:", error);
+        loginStatus.style.color = "#ed4245";
+        loginStatus.innerText = "Sign up failed: " + (error.message || error.code || "database connection error");
+    }
+}
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+async function login() {
+    const u = usernameInput.value.trim();
+    const p = passwordInput.value.trim();
+
+    loginStatus.style.color = "#ed4245";
+
+    if (!u || !p) {
+        loginStatus.innerText = "Enter username and password.";
+        return;
+    }
+
+    try {
+        const snapshot = await db.ref("users/" + u).once("value");
+
+        if (!snapshot.exists()) {
+            loginStatus.innerText = "No such user.";
+            return;
+        }
+
+        if (snapshot.val().password !== p) {
+            loginStatus.innerText = "Wrong password.";
+            return;
+        }
+
+        currentUser = u;
+        loginScreen.style.display = "none";
+        document.getElementById("giftMenuButton").style.display =
+            currentUser === "owner" ? "block" : "none";
+
+
+        await ensureMainServer();
+        await loadCurrentProfile();
+        watchCurrentMembership();
+        await startPresence();
+
+        loadServers();
+        await selectServer(MAIN_SERVER_ID);
+    } catch (error) {
+        console.error("Login error:", error);
+        currentUser = null;
+        loginScreen.style.display = "flex";
+        loginStatus.innerText = "Login failed: " + (error.message || error.code || "database connection error");
+    }
+}
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+function appendBadges(container, username, userData) {
+    if (!container) return;
+
+    if (username === "owner") {
+        const ownerBadge = document.createElement("span");
+        ownerBadge.className = "ownerBadge";
+        ownerBadge.innerText = "OWNER";
+        container.appendChild(ownerBadge);
+    }
+
+    const subscription = userData && userData.subscription;
+    const subscriptionIsActive = subscriptionIsPremium(subscription);
+
+    if (subscriptionIsActive && MEMBERSHIP_PRODUCTS[subscription.productId]) {
+        const subscriptionBadge = document.createElement("span");
+        subscriptionBadge.className = "subscriptionBadge";
+        subscriptionBadge.innerText = MEMBERSHIP_PRODUCTS[subscription.productId].name.toUpperCase();
+        container.appendChild(subscriptionBadge);
+    }
+
+    const badges = userData && userData.badges
+        ? userData.badges
+        : {};
+
+    Object.keys(badges).forEach(key => {
+        const badgeData = badges[key];
+        const badgeName =
+            typeof badgeData === "string"
+                ? badgeData
+                : badgeData && badgeData.name;
+
+        if (!badgeName) return;
+
+        const badge = document.createElement("span");
+        badge.className = "userBadge";
+        badge.innerText = badgeName;
+        container.appendChild(badge);
+    });
+}
+
+function subscriptionIsPremium(subscription) {
+    return Boolean(
+        subscription &&
+        subscription.productId === "premium" &&
+        (
+            subscription.expiresAt === "lifetime" ||
+            Number(subscription.expiresAt) > Date.now()
+        )
+    );
+}
+
+function canUsePremiumPerks() {
+    return currentUser === "owner" || currentUserHasPremium;
+}
+
+function updatePremiumPerkUi() {
+    const allowed = canUsePremiumPerks();
+    const leaksChannel = document.getElementById("updateLeaksChannel");
+    const voiceChanger = document.getElementById("voiceChangerBox");
+
+    if (leaksChannel) leaksChannel.style.display = allowed ? "block" : "none";
+    if (voiceChanger) voiceChanger.style.display = allowed ? "block" : "none";
+}
+
+function membershipLabel(subscription) {
+    if (!subscriptionIsPremium(subscription)) return "Free";
+    return subscription.expiresAt === "lifetime"
+        ? "Premium • Lifetime"
+        : "Premium • until " + formatGiftDate(subscription.expiresAt);
+}
+
+function watchCurrentMembership() {
+    if (currentSubscriptionRef && currentSubscriptionListener) {
+        currentSubscriptionRef.off("value", currentSubscriptionListener);
+    }
+
+    currentSubscriptionRef = db.ref("users/" + currentUser + "/subscription");
+    currentSubscriptionListener = snapshot => {
+        const subscription = snapshot.val();
+        currentUserHasPremium = subscriptionIsPremium(subscription);
+        document.getElementById("membershipStatus").innerText =
+            "Membership: " + membershipLabel(subscription);
+        updatePremiumPerkUi();
+        loadCurrentProfile();
+    };
+    currentSubscriptionRef.on("value", currentSubscriptionListener);
+}
+
+async function renderOwnerOnlineUsers() {
+    if (currentUser !== "owner") return;
+
+    const [presenceSnapshot, usersSnapshot] = await Promise.all([
+        db.ref("sitePresence").once("value"),
+        db.ref("users").once("value")
+    ]);
+    const onlineUsers = [];
+    presenceSnapshot.forEach(userSnapshot => {
+        if (userSnapshot.hasChildren()) onlineUsers.push(userSnapshot.key);
+    });
+
+    const holder = document.getElementById("ownerOnlineList");
+    holder.innerHTML = "";
+    if (!onlineUsers.length) {
+        holder.innerText = "Nobody is online.";
+        return;
+    }
+
+    const users = usersSnapshot.val() || {};
+    onlineUsers.sort().forEach(username => {
+        const row = document.createElement("div");
+        row.className = "onlineUserRow";
+        const plan = membershipLabel(users[username] && users[username].subscription);
+        row.innerHTML = '<span class="onlineDot">●</span>';
+        row.appendChild(document.createTextNode(username + " — " + plan));
+        holder.appendChild(row);
+    });
+}
+
+async function startPresence() {
+    myPresenceRef = db.ref("sitePresence/" + currentUser).push();
+    await myPresenceRef.set({
+        connectedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    myPresenceRef.onDisconnect().remove();
+
+    if (currentUser !== "owner") return;
+
+    document.getElementById("ownerOnlineBox").style.display = "block";
+    ownerPresenceRef = db.ref("sitePresence");
+    ownerPresenceListener = () => renderOwnerOnlineUsers().catch(console.error);
+    ownerPresenceRef.on("value", ownerPresenceListener);
+
+    ownerUsersRef = db.ref("users");
+    ownerUsersListener = () => renderOwnerOnlineUsers().catch(console.error);
+    ownerUsersRef.on("value", ownerUsersListener);
+}
+
+/* =========================================================
+   OWNER GIFTING
+========================================================= */
+
+function openShop() {
+    document.getElementById("shopModal").style.display = "flex";
+}
+
+function closeShop() {
+    document.getElementById("shopModal").style.display = "none";
+}
+
+async function openGiftMenu() {
+    if (currentUser !== "owner") {
+        alert("Only the owner can gift membership plans.");
+        return;
+    }
+
+    const snapshot = await db.ref("users").once("value");
+    const users = snapshot.val() || {};
+    const userSelect = document.getElementById("giftUser");
+    userSelect.innerHTML = "";
+
+    Object.keys(users).sort().forEach(username => {
+        const option = document.createElement("option");
+        option.value = username;
+        option.innerText = username;
+        userSelect.appendChild(option);
+    });
+
+    updateGiftOptions();
+    document.getElementById("giftStatus").innerText = "";
+    document.getElementById("giftModal").style.display = "flex";
+    await loadGiftRecipientDetails();
+}
+
+function closeGiftMenu() {
+    document.getElementById("giftModal").style.display = "none";
+}
+
+function updateGiftOptions() {
+    document.getElementById("durationField").style.display = "block";
+}
+
+function formatGiftDate(value) {
+    if (value === "lifetime") return "Lifetime";
+    const date = new Date(Number(value));
+    return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleDateString();
+}
+
+async function loadGiftRecipientDetails() {
+    const username = document.getElementById("giftUser").value;
+    const holder = document.getElementById("recipientEntitlements");
+    holder.innerHTML = "";
+    if (!username) {
+        holder.innerText = "No users are available.";
+        return;
+    }
+
+    const snapshot = await db.ref("users/" + username).once("value");
+    const data = snapshot.val() || {};
+    const entitlements = [data.subscription];
+
+    entitlements.forEach(subscription => {
+      if (subscription && MEMBERSHIP_PRODUCTS[subscription.productId]) {
+        const row = document.createElement("div");
+        row.className = "currentEntitlement";
+        row.innerText = MEMBERSHIP_PRODUCTS[subscription.productId].name +
+            " membership • expires " + formatGiftDate(subscription.expiresAt);
+        holder.appendChild(row);
+      }
+    });
+
+    if (!holder.children.length) {
+        holder.innerText = "No gifted plans are active.";
+    }
+}
+
+async function grantSelectedGift() {
+    if (currentUser !== "owner") {
+        alert("Only the owner can gift membership plans.");
+        return;
+    }
+
+    const username = document.getElementById("giftUser").value;
+    const productId = document.getElementById("giftProduct").value;
+    const status = document.getElementById("giftStatus");
+
+    if (!username || !productId) {
+        status.innerText = "Choose a user.";
+        return;
+    }
+
+    const entitlementPath = "subscription";
+    const duration = document.getElementById("giftDuration").value;
+    let expiresAt = "lifetime";
+
+    if (duration !== "lifetime") {
+        const existing = await db.ref("users/" + username + "/" + entitlementPath).once("value");
+        const old = existing.val();
+        const oldExpiry = old && Number(old.expiresAt);
+        const startsAt = oldExpiry > Date.now() ? oldExpiry : Date.now();
+        const expiryDate = new Date(startsAt);
+        expiryDate.setMonth(expiryDate.getMonth() + Number(duration));
+        expiresAt = expiryDate.getTime();
+    }
+
+    await db.ref("users/" + username + "/" + entitlementPath).set({
+        productId,
+        expiresAt,
+        grantedBy: "owner",
+        grantedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    status.innerText = MEMBERSHIP_PRODUCTS[productId].name + " granted to " + username + ".";
+
+    await loadGiftRecipientDetails();
+    loadMembers();
+    loadMessages();
+}
+
+async function revokeSelectedGift() {
+    if (currentUser !== "owner") {
+        alert("Only the owner can revoke membership plans.");
+        return;
+    }
+
+    const username = document.getElementById("giftUser").value;
+    const productId = document.getElementById("giftProduct").value;
+    const status = document.getElementById("giftStatus");
+    if (!username || !productId) return;
+
+    const entitlementPath = "subscription";
+    const current = await db.ref("users/" + username + "/" + entitlementPath).once("value");
+    if (!current.exists() || current.val().productId !== productId) {
+        status.innerText = "That user does not have the selected plan.";
+        return;
+    }
+    await current.ref.remove();
+    status.innerText = MEMBERSHIP_PRODUCTS[productId].name + " revoked from " + username + ".";
+
+    await loadGiftRecipientDetails();
+    loadMembers();
+    loadMessages();
+}
+
+
+async function loadCurrentProfile() {
+    if (!currentUser) return;
+
+    const snapshot = await db
+        .ref("users/" + currentUser)
+        .once("value");
+
+    const userData = snapshot.val() || {};
+    currentUserHasPremium = subscriptionIsPremium(userData.subscription);
+    updatePremiumPerkUi();
+    document.getElementById("membershipStatus").innerText =
+        "Membership: " + membershipLabel(userData.subscription);
+
+    document.getElementById("profileUsername").innerText =
+        currentUser;
+
+    const badgesHolder =
+        document.getElementById("profileBadges");
+
+    badgesHolder.innerHTML = "";
+    appendBadges(
+        badgesHolder,
+        currentUser,
+        userData
+    );
+}
+
+
+/* =========================================================
+   OWNER-ASSIGNED BADGES
+========================================================= */
+
+async function giveBadgeToUser(username) {
+    /*
+       Only the exact lowercase global owner account can
+       assign custom badges.
+    */
+    if (currentUser !== "owner") {
+        alert("Only the owner account can give badges.");
+        return;
+    }
+
+    if (!username || username === "owner") {
+        alert("The owner already has the permanent OWNER badge.");
+        return;
+    }
+
+    const badgeNameRaw = prompt(
+        "Badge name for " + username + ":"
+    );
+
+    if (badgeNameRaw === null) return;
+
+    const badgeName = badgeNameRaw.trim();
+
+    if (!badgeName) {
+        alert("Enter a badge name.");
+        return;
+    }
+
+    if (badgeName.length > 20) {
+        alert("Badge names must be 20 characters or fewer.");
+        return;
+    }
+
+    const badgesSnapshot = await db
+        .ref("users/" + username + "/badges")
+        .once("value");
+
+    if (badgesSnapshot.numChildren() >= 5) {
+        alert("This user already has the maximum of 5 custom badges.");
+        return;
+    }
+
+    /*
+       Prevent duplicate badge names for the same user.
+    */
+    let duplicate = false;
+
+    badgesSnapshot.forEach(badgeSnapshot => {
+        const value = badgeSnapshot.val();
+        const existingName =
+            typeof value === "string"
+                ? value
+                : value && value.name;
+
+        if (
+            existingName &&
+            existingName.toLowerCase() === badgeName.toLowerCase()
+        ) {
+            duplicate = true;
+        }
+    });
+
+    if (duplicate) {
+        alert("That user already has this badge.");
+        return;
+    }
+
+    await db
+        .ref("users/" + username + "/badges")
+        .push({
+            name: badgeName,
+            givenBy: "owner",
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    if (username === currentUser) {
+        await loadCurrentProfile();
+    }
+
+    loadMembers();
+    loadMessages();
+}
+
+
+async function removeBadgeFromUser(username) {
+    if (currentUser !== "owner") {
+        alert("Only the owner account can remove badges.");
+        return;
+    }
+
+    const snapshot = await db
+        .ref("users/" + username + "/badges")
+        .once("value");
+
+    if (!snapshot.exists()) {
+        alert(username + " has no custom badges.");
+        return;
+    }
+
+    const options = [];
+    const keys = [];
+
+    snapshot.forEach(badgeSnapshot => {
+        const value = badgeSnapshot.val();
+        const name =
+            typeof value === "string"
+                ? value
+                : value && value.name;
+
+        if (name) {
+            options.push(name);
+            keys.push(badgeSnapshot.key);
+        }
+    });
+
+    if (!options.length) {
+        alert(username + " has no custom badges.");
+        return;
+    }
+
+    const answer = prompt(
+        "Type the number of the badge to remove:\n\n" +
+        options
+            .map((name, index) => (index + 1) + ". " + name)
+            .join("\n")
+    );
+
+    if (answer === null) return;
+
+    const index = Number(answer) - 1;
+
+    if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= keys.length
+    ) {
+        alert("Invalid badge number.");
+        return;
+    }
+
+    await db
+        .ref(
+            "users/" +
+            username +
+            "/badges/" +
+            keys[index]
+        )
+        .remove();
+
+    loadMembers();
+    loadMessages();
+}
+
+
+/* =========================================================
+   SERVER MODAL
+========================================================= */
+
+function openServerModal() {
+    document.getElementById("serverStatus").innerText = "";
+    document.getElementById("serverModal").style.display = "flex";
+}
+
+function closeServerModal() {
+    document.getElementById("serverModal").style.display = "none";
+}
+
+/* =========================================================
+   INVITE CODE
+========================================================= */
+
+function generateInviteCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(
+            Math.floor(Math.random() * chars.length)
+        );
+    }
+
+    return code;
+}
+
+/* =========================================================
+   CREATE SERVER
+========================================================= */
+
+async function createServer() {
+    if (!currentUser) return;
+
+    const name = document
+        .getElementById("newServerName")
+        .value
+        .trim();
+
+    const status = document.getElementById("serverStatus");
+
+    if (!name) {
+        status.innerText = "Enter a server name.";
+        return;
+    }
+
+    let inviteCode;
+    let codeExists = true;
+
+    while (codeExists) {
+        inviteCode = generateInviteCode();
+
+        const snapshot = await db
+            .ref("inviteCodes/" + inviteCode)
+            .once("value");
+
+        codeExists = snapshot.exists();
+    }
+
+    const serverRef = db.ref("servers").push();
+    const serverId = serverRef.key;
+
+    await serverRef.set({
+        name: name,
+        owner: currentUser,
+        inviteCode: inviteCode,
+        isMain: false,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        members: {
+            [currentUser]: true
+        }
+    });
+
+    await db
+        .ref("inviteCodes/" + inviteCode)
+        .set(serverId);
+
+    document.getElementById("newServerName").value = "";
+
+    closeServerModal();
+    await selectServer(serverId);
+}
+
+/* =========================================================
+   JOIN SERVER
+========================================================= */
+
+async function joinServer() {
+    if (!currentUser) return;
+
+    const code = document
+        .getElementById("joinCode")
+        .value
+        .trim()
+        .toUpperCase();
+
+    const status = document.getElementById("serverStatus");
+
+    if (!code) {
+        status.innerText = "Enter an invite code.";
+        return;
+    }
+
+    const codeSnapshot = await db
+        .ref("inviteCodes/" + code)
+        .once("value");
+
+    if (!codeSnapshot.exists()) {
+        status.innerText = "Invalid invite code.";
+        return;
+    }
+
+    const serverId = codeSnapshot.val();
+
+    const serverSnapshot = await db
+        .ref("servers/" + serverId)
+        .once("value");
+
+    if (!serverSnapshot.exists()) {
+        status.innerText = "That server no longer exists.";
+        return;
+    }
+
+    const banned = await db
+        .ref("servers/" + serverId + "/bans/" + currentUser)
+        .once("value");
+
+    if (banned.exists() && currentUser !== "owner") {
+        status.innerText = "You are banned from this server.";
+        return;
+    }
+
+    await db
+        .ref("servers/" + serverId + "/members/" + currentUser)
+        .set(true);
+
+    document.getElementById("joinCode").value = "";
+    closeServerModal();
+
+    await selectServer(serverId);
+}
+
+/* =========================================================
+   LOAD USER SERVERS
+========================================================= */
+
+function loadServers() {
+    if (!currentUser) return;
+
+    db.ref("servers").on("value", snapshot => {
+        serverList.innerHTML = "";
+
+        snapshot.forEach(serverSnapshot => {
+            const server = serverSnapshot.val();
+            const serverId = serverSnapshot.key;
+
+            const isMainServer =
+                serverId === MAIN_SERVER_ID ||
+                server.isMain === true;
+
+            const isMember =
+                server.members &&
+                server.members[currentUser];
+
+            /*
+               Everyone sees Main Server.
+
+               Other servers:
+               - must be a member, OR
+               - must be the special global "owner"
+            */
+            if (
+                !isMainServer &&
+                !isMember &&
+                currentUser !== "owner"
+            ) {
+                return;
+            }
+
+            const button = document.createElement("button");
+            button.className = "serverButton";
+            button.dataset.serverId = serverId;
+
+            if (isMainServer) {
+                button.innerText = "MAIN";
+                button.style.fontSize = "10px";
+            } else {
+                button.innerText = server.name
+                    .substring(0, 2)
+                    .toUpperCase();
+            }
+
+            button.title = server.name;
+            button.onclick = () => selectServer(serverId);
+
+            serverList.appendChild(button);
+        });
+
+        updateActiveServerButton();
+    });
+}
+
+function updateActiveServerButton() {
+    document
+        .querySelectorAll(".serverButton[data-server-id]")
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.serverId === currentServer
+            );
+        });
+}
+
+/* =========================================================
+   SELECT SERVER
+========================================================= */
+
+async function selectServer(serverId) {
+    if (!currentUser) return;
+
+    /*
+       Voice chat is server-wide.
+       Switching servers leaves the old server's voice room.
+    */
+    if (
+        voiceJoined &&
+        currentServer &&
+        currentServer !== serverId
+    ) {
+        await leaveVoice();
+    }
+
+    const serverSnapshot = await db
+        .ref("servers/" + serverId)
+        .once("value");
+
+    if (!serverSnapshot.exists()) {
+        alert("That server no longer exists.");
+        return;
+    }
+
+    const server = serverSnapshot.val();
+
+    const isMainServer =
+        serverId === MAIN_SERVER_ID ||
+        server.isMain === true;
+
+    const banSnapshot = await db
+        .ref("servers/" + serverId + "/bans/" + currentUser)
+        .once("value");
+
+    if (
+        banSnapshot.exists() &&
+        currentUser !== "owner"
+    ) {
+        alert("You are banned from this server.");
+        return;
+    }
+
+    /*
+       Main Server is open to every registered user.
+
+       Other servers require membership,
+       except the global owner account.
+    */
+    if (
+        !isMainServer &&
+        currentUser !== "owner" &&
+        (
+            !server.members ||
+            !server.members[currentUser]
+        )
+    ) {
+        alert("You are not a member of this server.");
+        return;
+    }
+
+    currentServer = serverId;
+    currentServerData = server;
+    currentChannel = "general";
+    msgInput.disabled = false;
+    msgInput.placeholder = "Type a message...";
+    const sendButton = document.querySelector("#inputBox button");
+    if (sendButton) sendButton.disabled = false;
+
+    document.getElementById("serverName").innerText = server.name;
+    document.getElementById("chatHeader").innerText =
+        server.name + " • #general";
+
+    setActiveChannel("general");
+    updateActiveServerButton();
+
+    /*
+       Main Server needs no invite because everyone gets it.
+    */
+    if (isMainServer) {
+        document.getElementById("inviteBox").style.display = "none";
+    } else {
+        document.getElementById("inviteBox").style.display = "block";
+        document.getElementById("inviteCode").innerText =
+            server.inviteCode || "";
+    }
+
+    /*
+       The server creator can moderate their own server.
+       The special "owner" account can moderate all servers.
+    */
+    if (
+        server.owner === currentUser ||
+        currentUser === "owner"
+    ) {
+        document.getElementById("moderationButton").style.display =
+            "block";
+    } else {
+        document.getElementById("moderationButton").style.display =
+            "none";
+    }
+
+    loadMessages();
+}
+
+/* =========================================================
+   CHANNELS
+========================================================= */
+
+async function switchChannel(channel) {
+    if (!currentServer) return;
+
+    if (channel === "update-leaks" && !canUsePremiumPerks()) {
+        alert("The update-leaks channel is a Premium perk.");
+        return;
+    }
+
+    currentChannel = channel;
+
+    document.getElementById("chatHeader").innerText =
+        currentServerData.name +
+        " • #" +
+        currentChannel;
+
+    setActiveChannel(channel);
+    const leaksReadOnly = channel === "update-leaks" && currentUser !== "owner";
+    msgInput.disabled = leaksReadOnly;
+    msgInput.placeholder = leaksReadOnly
+        ? "Only the owner can post update leaks."
+        : "Type a message...";
+    const sendButton = document.querySelector("#inputBox button");
+    if (sendButton) sendButton.disabled = leaksReadOnly;
+    loadMessages();
+}
+
+function setActiveChannel(channel) {
+    document.querySelectorAll(".channel").forEach(element => {
+        element.classList.toggle(
+            "active",
+            element.dataset.channel === channel
+        );
+    });
+}
+
+/* =========================================================
+   LOAD MESSAGES
+========================================================= */
+
+async function loadMessages() {
+    if (!currentUser || !currentServer) return;
+
+    if (currentChannel === "update-leaks" && !canUsePremiumPerks()) {
+        messages.innerHTML = "<div id='noServer'>Premium is required to view update leaks.</div>";
+        return;
+    }
+
+    /*
+       Each call gets a unique ID. If another call starts while this
+       one is waiting for Firebase, the older call stops and cannot
+       attach a second listener or render a duplicate message list.
+    */
+    const loadId = ++currentMessageLoadId;
+    const requestedServer = currentServer;
+    const requestedChannel = currentChannel;
+
+    if (currentMessageRef) {
+        currentMessageRef.off();
+        currentMessageRef = null;
+    }
+
+    const banned = await db
+        .ref("servers/" + requestedServer + "/bans/" + currentUser)
+        .once("value");
+
+    if (
+        loadId !== currentMessageLoadId ||
+        requestedServer !== currentServer ||
+        requestedChannel !== currentChannel
+    ) {
+        return;
+    }
+
+    if (
+        banned.exists() &&
+        currentUser !== "owner"
+    ) {
+        messages.innerHTML =
+            "<div id='noServer'>You are banned from this server.</div>";
+        return;
+    }
+
+    currentMessageRef = db.ref(
+        "servers/" +
+        requestedServer +
+        "/channels/" +
+        requestedChannel +
+        "/messages"
+    );
+
+    let renderId = 0;
+
+    currentMessageRef.on("value", async snapshot => {
+        const thisRenderId = ++renderId;
+        if (loadId !== currentMessageLoadId) return;
+
+        if (!snapshot.exists()) {
+            messages.innerHTML =
+                "<div id='noServer'>No messages yet. Start the conversation!</div>";
+            return;
+        }
+
+        const usersSnapshot = await db.ref("users").once("value");
+
+        if (
+            loadId !== currentMessageLoadId ||
+            thisRenderId !== renderId
+        ) return;
+
+        const users = usersSnapshot.val() || {};
+
+        /*
+           Build the complete message list away from the page, then
+           replace the old list in one operation. This prevents two
+           overlapping Firebase callbacks from appending into the same
+           container. The ID set is an extra duplicate safeguard.
+        */
+        const messageFragment = document.createDocumentFragment();
+        const renderedMessageIds = new Set();
+
+        snapshot.forEach(messageSnapshot => {
+            const m = messageSnapshot.val();
+            const messageId = messageSnapshot.key;
+
+            if (!messageId || renderedMessageIds.has(messageId)) return;
+            renderedMessageIds.add(messageId);
+
+            const author = m.user || "Unknown";
+            const authorData = users[author] || {};
+
+            const div = document.createElement("div");
+            div.className = "message";
+            if (m.isAi) div.classList.add("aiMessage");
+            div.dataset.messageId = messageId;
+
+            const content = document.createElement("div");
+            content.className = "messageContent";
+
+            const header = document.createElement("div");
+            header.className = "messageHeader";
+
+            const user = document.createElement("span");
+            user.className = "messageUser";
+            user.innerText = author;
+
+            header.appendChild(user);
+            appendBadges(header, author, authorData);
+
+            content.appendChild(header);
+
+            const text = document.createElement("div");
+            text.innerText = m.text || "";
+            content.appendChild(text);
+
+            div.appendChild(content);
+
+            const canDelete =
+                author === currentUser ||
+                currentUser === "owner";
+
+            if (canDelete) {
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "deleteMessageButton";
+                deleteButton.innerText = "Delete";
+                deleteButton.title = "Delete message";
+                deleteButton.onclick = () => deleteMessage(messageId);
+
+                div.appendChild(deleteButton);
+            }
+
+            messageFragment.appendChild(div);
+        });
+
+        if (
+            loadId !== currentMessageLoadId ||
+            thisRenderId !== renderId
+        ) return;
+
+        messages.replaceChildren(messageFragment);
+        messages.scrollTop = messages.scrollHeight;
+    });
+}
+
+/* =========================================================
+   DELETE MESSAGES
+========================================================= */
+
+async function deleteMessage(messageId) {
+    if (!currentUser || !currentServer || !messageId) {
+        return;
+    }
+
+    const serverSnapshot = await db
+        .ref("servers/" + currentServer)
+        .once("value");
+
+    if (!serverSnapshot.exists()) {
+        return;
+    }
+
+    const server = serverSnapshot.val();
+
+    const messageRef = db.ref(
+        "servers/" +
+        currentServer +
+        "/channels/" +
+        currentChannel +
+        "/messages/" +
+        messageId
+    );
+
+    const messageSnapshot = await messageRef.once("value");
+
+    if (!messageSnapshot.exists()) {
+        return;
+    }
+
+    const message = messageSnapshot.val();
+
+    const canDelete =
+        message.user === currentUser ||
+        currentUser === "owner";
+
+    if (!canDelete) {
+        alert("You don't have permission to delete that message.");
+        return;
+    }
+
+    if (!confirm("Delete this message?")) {
+        return;
+    }
+
+    await messageRef.remove();
+}
+
+
+/* =========================================================
+   VOICE CHAT
+   WebRTC sends microphone audio peer-to-peer.
+   Firebase is used for room presence and WebRTC signaling.
+========================================================= */
+
+function setVoiceUi(joined) {
+    document.getElementById("voiceJoinButton").style.display =
+        joined ? "none" : "inline-block";
+
+    document.getElementById("voiceMuteButton").style.display =
+        joined ? "inline-block" : "none";
+
+    document.getElementById("voiceLeaveButton").style.display =
+        joined ? "inline-block" : "none";
+
+    if (!joined) {
+        document.getElementById("voiceMuteButton").innerText = "Mute Mic";
+        document.getElementById("voiceStatus").innerText = "Not connected";
+        document.getElementById("voiceMembersList").innerHTML = "";
+    }
+}
+
+
+async function sendVoiceSignal(toSessionId, payload) {
+    if (!currentServer || !myVoiceSessionId || !toSessionId) {
+        return;
+    }
+
+    await db.ref(
+        "voiceSignals/" +
+        currentServer +
+        "/" +
+        toSessionId
+    ).push({
+        ...payload,
+        from: myVoiceSessionId,
+        fromUser: currentUser,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+}
+
+
+function removeVoicePeer(peerId) {
+    const pc = voicePeers.get(peerId);
+
+    if (pc) {
+        try {
+            pc.close();
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
+    voicePeers.delete(peerId);
+    pendingIceCandidates.delete(peerId);
+    voiceSignalQueues.delete(peerId);
+
+    if (voiceReconnectTimers.has(peerId)) {
+        clearTimeout(voiceReconnectTimers.get(peerId));
+        voiceReconnectTimers.delete(peerId);
+    }
+
+    const audio = document.getElementById("voice-audio-" + peerId);
+
+    if (audio) {
+        audio.remove();
+    }
+}
+
+
+async function flushPendingIce(peerId) {
+    const pc = voicePeers.get(peerId);
+
+    if (
+        !pc ||
+        !pc.remoteDescription ||
+        !pendingIceCandidates.has(peerId)
+    ) {
+        return;
+    }
+
+    const candidates = pendingIceCandidates.get(peerId);
+    pendingIceCandidates.delete(peerId);
+
+    for (const candidate of candidates) {
+        try {
+            await pc.addIceCandidate(candidate);
+        } catch (error) {
+            console.warn("Could not add queued ICE candidate:", error);
+        }
+    }
+}
+
+function disconnectVoiceEffectNodes() {
+    voiceEffectNodes.forEach(node => {
+        try { node.disconnect(); } catch (error) {}
+        if (typeof node.stop === "function") {
+            try { node.stop(); } catch (error) {}
+        }
+    });
+    voiceEffectNodes = [];
+}
+
+async function buildVoiceEffect(effect) {
+    if (!rawVoiceStream) return null;
+
+    if (effect !== "normal" && !canUsePremiumPerks()) {
+        effect = "normal";
+    }
+
+    if (!voiceAudioContext) {
+        voiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    await voiceAudioContext.resume();
+    disconnectVoiceEffectNodes();
+
+    const source = voiceAudioContext.createMediaStreamSource(rawVoiceStream);
+    const destination = voiceAudioContext.createMediaStreamDestination();
+    voiceEffectNodes.push(source, destination);
+
+    if (effect === "deep") {
+        const lowpass = voiceAudioContext.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 850;
+        lowpass.Q.value = 1.2;
+        const bass = voiceAudioContext.createBiquadFilter();
+        bass.type = "lowshelf";
+        bass.frequency.value = 220;
+        bass.gain.value = 12;
+        source.connect(lowpass).connect(bass).connect(destination);
+        voiceEffectNodes.push(lowpass, bass);
+    } else if (effect === "robot") {
+        const carrier = voiceAudioContext.createOscillator();
+        const modulator = voiceAudioContext.createGain();
+        const output = voiceAudioContext.createGain();
+        carrier.frequency.value = 48;
+        modulator.gain.value = 0.75;
+        output.gain.value = 1.3;
+        carrier.connect(modulator.gain);
+        source.connect(modulator).connect(output).connect(destination);
+        carrier.start();
+        voiceEffectNodes.push(carrier, modulator, output);
+    } else if (effect === "radio") {
+        const highpass = voiceAudioContext.createBiquadFilter();
+        const lowpass = voiceAudioContext.createBiquadFilter();
+        const distortion = voiceAudioContext.createWaveShaper();
+        highpass.type = "highpass";
+        highpass.frequency.value = 500;
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 2500;
+        const curve = new Float32Array(256);
+        for (let i = 0; i < curve.length; i++) {
+            const x = i * 2 / (curve.length - 1) - 1;
+            curve[i] = Math.tanh(2.5 * x);
+        }
+        distortion.curve = curve;
+        source.connect(highpass).connect(lowpass).connect(distortion).connect(destination);
+        voiceEffectNodes.push(highpass, lowpass, distortion);
+    } else {
+        source.connect(destination);
+    }
+
+    currentVoiceEffect = effect;
+    return destination.stream;
+}
+
+async function changeVoiceEffect(effect) {
+    if (effect !== "normal" && !canUsePremiumPerks()) {
+        alert("Voice changers are available to Premium members and the owner.");
+        document.getElementById("voiceChangerSelect").value = "normal";
+        return;
+    }
+
+    currentVoiceEffect = effect;
+    if (!voiceJoined || !rawVoiceStream) return;
+
+    const oldStream = localVoiceStream;
+    const newStream = await buildVoiceEffect(effect);
+    if (!newStream) return;
+    const newTrack = newStream.getAudioTracks()[0];
+
+    for (const pc of voicePeers.values()) {
+        const sender = pc.getSenders().find(item => item.track && item.track.kind === "audio");
+        if (sender) await sender.replaceTrack(newTrack);
+    }
+
+    if (voiceMuted) newTrack.enabled = false;
+    localVoiceStream = newStream;
+    if (oldStream) oldStream.getTracks().forEach(track => track.stop());
+    document.getElementById("voiceStatus").innerText =
+        "Connected • " + effect + " voice effect";
+}
+
+
+function getOrCreateVoicePeer(peerId) {
+    if (voicePeers.has(peerId)) {
+        return voicePeers.get(peerId);
+    }
+
+    const pc = new RTCPeerConnection(voiceRtcConfig);
+    voicePeers.set(peerId, pc);
+
+    if (localVoiceStream) {
+        localVoiceStream.getTracks().forEach(track => {
+            const sender = pc.addTrack(track, localVoiceStream);
+
+            /* Keep group calls responsive on ordinary connections. */
+            if (sender && sender.getParameters && sender.setParameters) {
+                const parameters = sender.getParameters();
+                if (!parameters.encodings || !parameters.encodings.length) {
+                    parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxBitrate = 40000;
+                parameters.encodings[0].networkPriority = "high";
+                sender.setParameters(parameters).catch(() => {});
+            }
+        });
+    }
+
+    pc.onicecandidate = event => {
+        if (!event.candidate) return;
+
+        sendVoiceSignal(peerId, {
+            type: "candidate",
+            candidate: event.candidate.toJSON()
+        });
+    };
+
+    pc.ontrack = event => {
+        let audio = document.getElementById("voice-audio-" + peerId);
+
+        if (!audio) {
+            audio = document.createElement("audio");
+            audio.id = "voice-audio-" + peerId;
+            audio.autoplay = true;
+            audio.playsInline = true;
+            audio.volume = 1;
+            audio.muted = false;
+
+            document
+                .getElementById("remoteAudioContainer")
+                .appendChild(audio);
+        }
+
+        if (event.streams && event.streams[0]) {
+            audio.srcObject = event.streams[0];
+        } else {
+            const stream = new MediaStream();
+            stream.addTrack(event.track);
+            audio.srcObject = stream;
+        }
+
+        audio.play().catch(() => {
+            document.getElementById("voiceStatus").innerText =
+                "Connected • click anywhere once to enable all speakers";
+
+            const resumeAudio = () => {
+                document.querySelectorAll("#remoteAudioContainer audio")
+                    .forEach(item => item.play().catch(() => {}));
+                document.removeEventListener("click", resumeAudio);
+            };
+            document.addEventListener("click", resumeAudio);
+        });
+    };
+
+    pc.onconnectionstatechange = () => {
+        if (
+            pc.connectionState === "failed" ||
+            pc.connectionState === "closed"
+        ) {
+            removeVoicePeer(peerId);
+        }
+
+        if (pc.connectionState === "disconnected" && !voiceReconnectTimers.has(peerId)) {
+            const timer = setTimeout(() => {
+                voiceReconnectTimers.delete(peerId);
+                if (pc.connectionState === "disconnected") {
+                    removeVoicePeer(peerId);
+                    if (voiceJoined && myVoiceSessionId < peerId) {
+                        createVoiceOffer(peerId).catch(() => removeVoicePeer(peerId));
+                    }
+                }
+            }, 4000);
+            voiceReconnectTimers.set(peerId, timer);
+        }
+
+        if (pc.connectionState === "connected" && voiceReconnectTimers.has(peerId)) {
+            clearTimeout(voiceReconnectTimers.get(peerId));
+            voiceReconnectTimers.delete(peerId);
+        }
+    };
+
+    return pc;
+}
+
+
+async function createVoiceOffer(peerId) {
+    const pc = getOrCreateVoicePeer(peerId);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    await sendVoiceSignal(peerId, {
+        type: "offer",
+        sdp: {
+            type: pc.localDescription.type,
+            sdp: pc.localDescription.sdp
+        }
+    });
+}
+
+
+async function handleVoiceSignal(signal) {
+    if (
+        !signal ||
+        !signal.from ||
+        signal.from === myVoiceSessionId
+    ) {
+        return;
+    }
+
+    const peerId = signal.from;
+    if (!voicePeers.has(peerId) && voicePeers.size >= 1) {
+        return;
+    }
+    const pc = getOrCreateVoicePeer(peerId);
+
+    try {
+        if (signal.type === "offer" && signal.sdp) {
+            await pc.setRemoteDescription(
+                new RTCSessionDescription(signal.sdp)
+            );
+
+            await flushPendingIce(peerId);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await sendVoiceSignal(peerId, {
+                type: "answer",
+                sdp: {
+                    type: pc.localDescription.type,
+                    sdp: pc.localDescription.sdp
+                }
+            });
+        }
+
+        if (signal.type === "answer" && signal.sdp) {
+            await pc.setRemoteDescription(
+                new RTCSessionDescription(signal.sdp)
+            );
+
+            await flushPendingIce(peerId);
+        }
+
+        if (signal.type === "candidate" && signal.candidate) {
+            const candidate = new RTCIceCandidate(signal.candidate);
+
+            if (pc.remoteDescription) {
+                await pc.addIceCandidate(candidate);
+            } else {
+                if (!pendingIceCandidates.has(peerId)) {
+                    pendingIceCandidates.set(peerId, []);
+                }
+
+                pendingIceCandidates.get(peerId).push(candidate);
+            }
+        }
+    } catch (error) {
+        console.error("Voice signaling error:", error);
+    }
+}
+
+function queueVoiceSignal(signal) {
+    if (!signal || !signal.from) return Promise.resolve();
+
+    const peerId = signal.from;
+    const previous = voiceSignalQueues.get(peerId) || Promise.resolve();
+    const next = previous
+        .catch(() => {})
+        .then(() => handleVoiceSignal(signal));
+
+    voiceSignalQueues.set(peerId, next);
+    next.finally(() => {
+        if (voiceSignalQueues.get(peerId) === next) {
+            voiceSignalQueues.delete(peerId);
+        }
+    });
+    return next;
+}
+
+
+function startVoiceMembersListener() {
+    if (!currentServer) return;
+
+    voiceMembersRef = db.ref(
+        "servers/" +
+        currentServer +
+        "/voiceMembers"
+    );
+
+    voiceMembersListener = snapshot => {
+        const list = document.getElementById("voiceMembersList");
+        list.innerHTML = "";
+
+        const activeIds = new Set();
+
+        snapshot.forEach(memberSnapshot => {
+            const member = memberSnapshot.val();
+            const sessionId = memberSnapshot.key;
+
+            activeIds.add(sessionId);
+
+            const div = document.createElement("div");
+            div.className = "voiceMember";
+
+            div.innerText =
+                sessionId === myVoiceSessionId
+                    ? "🎤 " + (member.user || currentUser) + " (you)"
+                    : "🔊 " + (member.user || "User");
+
+            list.appendChild(div);
+
+            /* A voice room contains at most two people, so each member can
+               have no more than one peer connection. */
+            if (
+                voiceJoined &&
+                sessionId !== myVoiceSessionId &&
+                voicePeers.size === 0 &&
+                !voicePeers.has(sessionId) &&
+                myVoiceSessionId < sessionId
+            ) {
+                createVoiceOffer(sessionId).catch(error => {
+                    console.error("Could not connect voice peer:", error);
+                    removeVoicePeer(sessionId);
+                });
+            }
+        });
+
+        for (const peerId of [...voicePeers.keys()]) {
+            if (!activeIds.has(peerId)) {
+                removeVoicePeer(peerId);
+            }
+        }
+    };
+
+    voiceMembersRef.on("value", voiceMembersListener);
+}
+
+
+async function joinVoice() {
+    if (!currentUser || !currentServer) {
+        alert("Select a server first.");
+        return;
+    }
+
+    if (voiceJoined) {
+        return;
+    }
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+        alert(
+            "Voice chat needs microphone access and must run over HTTPS or localhost."
+        );
+        return;
+    }
+
+    const banned = await db
+        .ref("servers/" + currentServer + "/bans/" + currentUser)
+        .once("value");
+
+    if (
+        banned.exists() &&
+        currentUser !== "owner"
+    ) {
+        alert("You are banned from this server.");
+        return;
+    }
+
+    try {
+        const membersPath =
+            "servers/" +
+            currentServer +
+            "/voiceMembers";
+
+        /* Reserve one of two room slots atomically. This prevents simultaneous
+           joins from allowing a third participant into the voice room. */
+        const membersRef = db.ref(membersPath);
+        myVoiceSessionRef = membersRef.push();
+        myVoiceSessionId = myVoiceSessionRef.key;
+
+        const reservation = await membersRef.transaction(members => {
+            const currentMembers = members || {};
+            if (Object.keys(currentMembers).length >= 2) return;
+
+            currentMembers[myVoiceSessionId] = {
+                user: currentUser,
+                joinedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+            return currentMembers;
+        });
+
+        if (!reservation.committed) {
+            myVoiceSessionRef = null;
+            myVoiceSessionId = null;
+            document.getElementById("voiceStatus").innerText = "Voice chat is full (2/2)";
+            alert("This voice chat is full. Only two people can join.");
+            return;
+        }
+
+        myVoiceSessionRef.onDisconnect().remove();
+
+        document.getElementById("voiceStatus").innerText =
+            "Requesting microphone...";
+
+        rawVoiceStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                channelCount: 1,
+                sampleRate: 48000
+            },
+            video: false
+        });
+
+        localVoiceStream = await buildVoiceEffect(currentVoiceEffect);
+
+        myVoiceSignalRef = db.ref(
+            "voiceSignals/" +
+            currentServer +
+            "/" +
+            myVoiceSessionId
+        );
+
+        myVoiceSignalRef.onDisconnect().remove();
+
+        myVoiceSignalRef.on("child_added", async signalSnapshot => {
+            const signal = signalSnapshot.val();
+
+            await queueVoiceSignal(signal);
+
+            /*
+               Remove processed signaling messages so they don't pile up.
+            */
+            signalSnapshot.ref.remove();
+        });
+
+        voiceJoined = true;
+        voiceMuted = false;
+
+        setVoiceUi(true);
+
+        document.getElementById("voiceStatus").innerText =
+            "Connected to voice";
+
+        startVoiceMembersListener();
+
+    } catch (error) {
+        console.error(error);
+
+        if (localVoiceStream) {
+            localVoiceStream.getTracks().forEach(track => track.stop());
+            localVoiceStream = null;
+        }
+        if (rawVoiceStream) {
+            rawVoiceStream.getTracks().forEach(track => track.stop());
+            rawVoiceStream = null;
+        }
+
+        if (myVoiceSessionRef) {
+            try { await myVoiceSessionRef.remove(); } catch (cleanupError) {}
+        }
+        myVoiceSessionRef = null;
+        myVoiceSessionId = null;
+
+        voiceJoined = false;
+        setVoiceUi(false);
+
+        alert(
+            "Could not start voice chat. Allow microphone permission and run Deskcar over HTTPS or localhost."
+        );
+    }
+}
+
+
+function toggleVoiceMute() {
+    if (!voiceJoined || !localVoiceStream) {
+        return;
+    }
+
+    voiceMuted = !voiceMuted;
+
+    localVoiceStream.getAudioTracks().forEach(track => {
+        track.enabled = !voiceMuted;
+    });
+
+    document.getElementById("voiceMuteButton").innerText =
+        voiceMuted ? "Unmute Mic" : "Mute Mic";
+
+    document.getElementById("voiceStatus").innerText =
+        voiceMuted
+            ? "Connected • microphone muted"
+            : "Connected to voice";
+}
+
+
+async function leaveVoice() {
+    const sessionRef = myVoiceSessionRef;
+    const signalRef = myVoiceSignalRef;
+
+    if (voiceMembersRef && voiceMembersListener) {
+        voiceMembersRef.off("value", voiceMembersListener);
+    }
+
+    voiceMembersRef = null;
+    voiceMembersListener = null;
+
+    for (const peerId of [...voicePeers.keys()]) {
+        removeVoicePeer(peerId);
+    }
+
+    if (localVoiceStream) {
+        localVoiceStream.getTracks().forEach(track => track.stop());
+        localVoiceStream = null;
+    }
+
+    if (rawVoiceStream) {
+        rawVoiceStream.getTracks().forEach(track => track.stop());
+        rawVoiceStream = null;
+    }
+
+    disconnectVoiceEffectNodes();
+    if (voiceAudioContext) {
+        try { await voiceAudioContext.close(); } catch (error) {}
+        voiceAudioContext = null;
+    }
+
+    if (signalRef) {
+        signalRef.off();
+
+        try {
+            await signalRef.remove();
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
+    if (sessionRef) {
+        try {
+            await sessionRef.remove();
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
+    myVoiceSessionId = null;
+    myVoiceSessionRef = null;
+    myVoiceSignalRef = null;
+
+    voiceJoined = false;
+    voiceMuted = false;
+
+    document.getElementById("remoteAudioContainer").innerHTML = "";
+
+    setVoiceUi(false);
+}
+
+
+window.addEventListener("beforeunload", () => {
+    if (myPresenceRef) {
+        myPresenceRef.remove();
+    }
+
+    if (myVoiceSessionRef) {
+        myVoiceSessionRef.remove();
+    }
+
+    if (myVoiceSignalRef) {
+        myVoiceSignalRef.remove();
+    }
+});
+
+
+/* =========================================================
+   AUTOMOD
+   - Blocks repeated/spam messages
+   - Blocks basic direct harassment
+========================================================= */
+
+/*
+   Turn a message into a simpler form for comparison.
+   This lets "HELLO!!!" and "hello" count as the same
+   repeated message.
+*/
+function normalizeMessageForSpam(text) {
+    return text
+        .toLowerCase()
+        .normalize("NFKC")
+        .replace(/[^\p{L}\p{N}\s]/gu, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+
+/*
+   Basic harassment detector.
+
+   It focuses mostly on insults aimed directly at another
+   person. You can add/remove phrases later if you want.
+*/
+function containsHarassment(text) {
+    const cleaned = text
+        .toLowerCase()
+        .normalize("NFKC")
+        .replace(/[’]/g, "'")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const harassmentPatterns = [
+        /\b(you are|you're|youre|ur)\s+(so\s+)?(stupid|dumb|idiotic|pathetic|worthless|ugly|disgusting|annoying|useless)\b/i,
+        /\b(you are|you're|youre|ur)\s+(an?\s+)?(idiot|moron|loser|freak)\b/i,
+        /\bnobody likes you\b/i,
+        /\beveryone hates you\b/i,
+        /\bgo die\b/i,
+        /\bkill yourself\b/i,
+        /\bkys\b/i,
+        /\bshut up[, ]+idiot\b/i,
+        /\bshut up[, ]+moron\b/i,
+        /\bi hate you\b/i
+    ];
+
+    return harassmentPatterns.some(pattern => pattern.test(cleaned));
+}
+
+
+/*
+   Detect obvious spam inside one message:
+   - extremely long repeated characters
+   - the same word repeated many times
+*/
+function containsSingleMessageSpam(text) {
+    const cleaned = text.toLowerCase().trim();
+
+    // Example: "aaaaaaaaaaaa" or "!!!!!!!!!!!!"
+    if (/(.)\1{9,}/i.test(cleaned)) {
+        return true;
+    }
+
+    // Example: "hello hello hello hello hello"
+    if (/\b(\w+)\b(?:\s+\1\b){4,}/i.test(cleaned)) {
+        return true;
+    }
+
+    return false;
+}
+
+
+/*
+   Check recent Firebase messages from this channel.
+
+   Rules:
+   1. Same user cannot post the same normalized message
+      again within 60 seconds.
+   2. Same user cannot send 4 or more messages within
+      a 5-second window.
+*/
+async function isRecentSpam(text) {
+    const normalizedText = normalizeMessageForSpam(text);
+    const now = Date.now();
+
+    const recentSnapshot = await db.ref(
+        "servers/" +
+        currentServer +
+        "/channels/" +
+        currentChannel +
+        "/messages"
+    )
+    .orderByChild("timestamp")
+    .limitToLast(20)
+    .once("value");
+
+    let sameMessageRecently = false;
+    let messagesInLastFiveSeconds = 0;
+
+    recentSnapshot.forEach(messageSnapshot => {
+        const message = messageSnapshot.val();
+
+        if (!message || message.user !== currentUser) {
+            return;
+        }
+
+        const timestamp =
+            typeof message.timestamp === "number"
+                ? message.timestamp
+                : 0;
+
+        const age = now - timestamp;
+
+        if (
+            age >= 0 &&
+            age <= 60000 &&
+            normalizeMessageForSpam(message.text || "") === normalizedText
+        ) {
+            sameMessageRecently = true;
+        }
+
+        if (
+            age >= 0 &&
+            age <= 5000
+        ) {
+            messagesInLastFiveSeconds++;
+        }
+    });
+
+    return (
+        sameMessageRecently ||
+        messagesInLastFiveSeconds >= 3
+    );
+}
+
+
+/* =========================================================
+   SEND MESSAGE
+========================================================= */
+
+async function sendMessage() {
+    if (!currentUser || !currentServer) {
+        alert("Select a server first.");
+        return;
+    }
+
+    const text = msgInput.value.trim();
+
+    if (!text) return;
+
+    if (currentChannel === "update-leaks") {
+        if (!canUsePremiumPerks()) {
+            alert("Premium is required to view update leaks.");
+            return;
+        }
+
+        if (currentUser !== "owner") {
+            alert("Only the owner can post in update-leaks.");
+            return;
+        }
+    }
+
+    const banned = await db
+        .ref("servers/" + currentServer + "/bans/" + currentUser)
+        .once("value");
+
+    if (
+        banned.exists() &&
+        currentUser !== "owner"
+    ) {
+        alert("You are banned from this server.");
+        return;
+    }
+
+    /*
+       HARASSMENT FILTER
+       The message is stopped before it reaches Firebase.
+    */
+    if (containsHarassment(text)) {
+        alert("AutoMod: That message was blocked for harassment.");
+        return;
+    }
+
+    /*
+       SPAM INSIDE ONE MESSAGE
+    */
+    if (containsSingleMessageSpam(text)) {
+        alert("AutoMod: That message was blocked as spam.");
+        return;
+    }
+
+    /*
+       REPEATED / RAPID-FIRE SPAM
+    */
+    const recentSpam = await isRecentSpam(text);
+
+    if (recentSpam) {
+        alert("AutoMod: Please don't repeat or spam messages.");
+        return;
+    }
+
+    /*
+       Only approved messages get saved.
+    */
+    await db.ref(
+        "servers/" +
+        currentServer +
+        "/channels/" +
+        currentChannel +
+        "/messages"
+    ).push({
+        user: currentUser,
+        text: text,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    msgInput.value = "";
+}
+
+/* =========================================================
+   COPY INVITE CODE
+========================================================= */
+
+async function copyInviteCode() {
+    if (!currentServerData || !currentServerData.inviteCode) return;
+
+    const code = currentServerData.inviteCode;
+
+    try {
+        await navigator.clipboard.writeText(code);
+        alert("Invite code copied: " + code);
+    } catch {
+        prompt("Copy this invite code:", code);
+    }
+}
+
+/* =========================================================
+   MODERATION
+========================================================= */
+
+async function openModeration() {
+    if (!currentServer) return;
+
+    const serverSnapshot = await db
+        .ref("servers/" + currentServer)
+        .once("value");
+
+    if (!serverSnapshot.exists()) return;
+
+    const server = serverSnapshot.val();
+
+    if (
+        server.owner !== currentUser &&
+        currentUser !== "owner"
+    ) {
+        alert("Only the server owner can manage members.");
+        return;
+    }
+
+    document.getElementById("moderationModal").style.display =
+        "flex";
+
+    loadMembers();
+}
+
+function closeModeration() {
+    document.getElementById("moderationModal").style.display =
+        "none";
+}
+
+/* =========================================================
+   MEMBER LIST
+========================================================= */
+
+async function loadMembers() {
+    if (!currentServer) return;
+
+    const serverSnapshot = await db
+        .ref("servers/" + currentServer)
+        .once("value");
+
+    if (!serverSnapshot.exists()) return;
+
+    const server = serverSnapshot.val();
+
+    const memberList = document.getElementById("memberList");
+    const bannedList = document.getElementById("bannedList");
+
+    memberList.innerHTML = "";
+    bannedList.innerHTML = "";
+
+    const isMainServer =
+        currentServer === MAIN_SERVER_ID ||
+        server.isMain === true;
+
+    const usersSnapshot = await db.ref("users").once("value");
+    const allUsers = usersSnapshot.val() || {};
+
+    let members = {};
+
+    if (isMainServer) {
+        Object.keys(allUsers).forEach(username => {
+            members[username] = true;
+        });
+    } else {
+        members = server.members || {};
+    }
+
+    Object.keys(members).forEach(member => {
+        if (server.bans && server.bans[member]) {
+            return;
+        }
+
+        const memberData = allUsers[member] || {};
+
+        const div = document.createElement("div");
+        div.className = "member";
+
+        const identity = document.createElement("div");
+        identity.className = "memberIdentity";
+
+        const identityText = document.createElement("div");
+        identityText.className = "memberIdentityText";
+
+        const nameLine = document.createElement("div");
+
+        const name = document.createElement("span");
+        name.innerText = member;
+
+        nameLine.appendChild(name);
+        appendBadges(nameLine, member, memberData);
+
+        identityText.appendChild(nameLine);
+        identity.appendChild(identityText);
+        div.appendChild(identity);
+
+        const actions = document.createElement("div");
+        actions.className = "memberActions";
+
+        if (
+            currentUser === "owner" &&
+            member !== "owner"
+        ) {
+            const giveBadgeButton =
+                document.createElement("button");
+
+            giveBadgeButton.innerText = "Give Badge";
+            giveBadgeButton.onclick = () =>
+                giveBadgeToUser(member);
+
+            actions.appendChild(giveBadgeButton);
+
+            if (
+                memberData.badges &&
+                Object.keys(memberData.badges).length
+            ) {
+                const removeBadgeButton =
+                    document.createElement("button");
+
+                removeBadgeButton.innerText = "Remove Badge";
+                removeBadgeButton.onclick = () =>
+                    removeBadgeFromUser(member);
+
+                actions.appendChild(removeBadgeButton);
+            }
+        }
+
+        if (
+            member !== server.owner &&
+            member !== "owner"
+        ) {
+            const banButton =
+                document.createElement("button");
+
+            banButton.innerText = "Ban";
+            banButton.className = "danger";
+            banButton.onclick = () => banUser(member);
+
+            actions.appendChild(banButton);
+        }
+
+        div.appendChild(actions);
+        memberList.appendChild(div);
+    });
+
+    if (server.bans) {
+        Object.keys(server.bans).forEach(user => {
+            const div = document.createElement("div");
+            div.className = "member";
+
+            const name = document.createElement("span");
+            name.innerText = user;
+
+            const button = document.createElement("button");
+            button.innerText = "Unban";
+            button.className = "success";
+            button.onclick = () => unbanUser(user);
+
+            div.appendChild(name);
+            div.appendChild(button);
+
+            bannedList.appendChild(div);
+        });
+    }
+
+    if (bannedList.innerHTML === "") {
+        bannedList.innerHTML =
+            "<div style='color:#aaa'>No banned users.</div>";
+    }
+}
+
+/* =========================================================
+   BAN USER
+========================================================= */
+
+async function banUser(user) {
+    if (!currentServer) return;
+
+    const serverSnapshot = await db
+        .ref("servers/" + currentServer)
+        .once("value");
+
+    if (!serverSnapshot.exists()) return;
+
+    const server = serverSnapshot.val();
+
+    if (
+        server.owner !== currentUser &&
+        currentUser !== "owner"
+    ) {
+        alert("You don't have permission.");
+        return;
+    }
+
+    if (
+        user === server.owner ||
+        user === "owner"
+    ) {
+        alert("You cannot ban this user.");
+        return;
+    }
+
+    if (
+        !confirm(
+            "Ban " + user + " from " + server.name + "?"
+        )
+    ) {
+        return;
+    }
+
+    await db
+        .ref(
+            "servers/" +
+            currentServer +
+            "/bans/" +
+            user
+        )
+        .set({
+            bannedBy: currentUser,
+            bannedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    /*
+       For private servers, also remove membership.
+       Main Server does not use a member list for access.
+    */
+    if (
+        currentServer !== MAIN_SERVER_ID &&
+        !server.isMain
+    ) {
+        await db
+            .ref(
+                "servers/" +
+                currentServer +
+                "/members/" +
+                user
+            )
+            .remove();
+    }
+
+    loadMembers();
+}
+
+/* =========================================================
+   UNBAN USER
+========================================================= */
+
+async function unbanUser(user) {
+    if (!currentServer) return;
+
+    const serverSnapshot = await db
+        .ref("servers/" + currentServer)
+        .once("value");
+
+    if (!serverSnapshot.exists()) return;
+
+    const server = serverSnapshot.val();
+
+    if (
+        server.owner !== currentUser &&
+        currentUser !== "owner"
+    ) {
+        alert("You don't have permission.");
+        return;
+    }
+
+    await db
+        .ref(
+            "servers/" +
+            currentServer +
+            "/bans/" +
+            user
+        )
+        .remove();
+
+    alert(user + " has been unbanned.");
+
+    loadMembers();
+}
+
+/* =========================================================
+   CLOSE MODALS WHEN CLICKING OUTSIDE
+========================================================= */
+
+window.addEventListener("click", event => {
+    const serverModal = document.getElementById("serverModal");
+    const moderationModal = document.getElementById("moderationModal");
+    const shopModal = document.getElementById("shopModal");
+    const giftModal = document.getElementById("giftModal");
+
+    if (event.target === serverModal) {
+        closeServerModal();
+    }
+
+    if (event.target === moderationModal) {
+        closeModeration();
+    }
+
+    if (event.target === shopModal) {
+        closeShop();
+    }
+
+    if (event.target === giftModal) {
+        closeGiftMenu();
+    }
+
+});
+</script>
+
+</body>
+</html>
